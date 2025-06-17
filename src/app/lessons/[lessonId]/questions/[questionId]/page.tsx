@@ -17,9 +17,11 @@ export default async function QuestionPage({ params }: Props) {
         redirect("/login");
     }
 
+    const { lessonId } = await params;
+
     const [question, lesson] = await Promise.all([
         findQuestionById(params.questionId),
-        prisma.lesson.findUnique({ where: { id: params.lessonId } }),
+        prisma.lesson.findUnique({ where: { id: lessonId } }),
     ]);
 
     if (!question || !lesson) {

@@ -14,9 +14,11 @@ export default async function LessonStartPage({ params }: Props) {
         redirect("/login");
     }
 
+    const { lessonId } = await params;
+
     // このレッスンの最初の問題を取得
     const firstQuestion = await prisma.question.findFirst({
-        where: { lessonId: params.lessonId },
+        where: { lessonId: lessonId },
         orderBy: { order: "asc" },
         select: { id: true },
     });
@@ -27,5 +29,5 @@ export default async function LessonStartPage({ params }: Props) {
     }
 
     // 最初の問題のページにリダイレクト
-    redirect(`/lessons/${params.lessonId}/questions/${firstQuestion.id}`);
+    redirect(`/lessons/${lessonId}/questions/${firstQuestion.id}`);
 }

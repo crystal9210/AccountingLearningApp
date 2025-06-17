@@ -26,9 +26,11 @@ export default async function LessonResultsPage({ params }: Props) {
         redirect("/login");
     }
 
+    const { lessonId } = await params;
+
     const [lesson, progress] = await Promise.all([
-        prisma.lesson.findUnique({ where: { id: params.lessonId } }),
-        findUserProgress(user.id, params.lessonId),
+        prisma.lesson.findUnique({ where: { id: lessonId } }),
+        findUserProgress(user.id, lessonId),
     ]);
 
     if (!lesson || !progress) {
