@@ -17,7 +17,7 @@ import { checkAndAwardLessonCompletionBadges } from "@/lib/badge";
 import { Confetti } from "@/components/ui/Confetti";
 
 type Props = {
-    params: { lessonId: string };
+    params: Promise<{ lessonId: string }>;
 };
 
 export default async function LessonResultsPage({ params }: Props) {

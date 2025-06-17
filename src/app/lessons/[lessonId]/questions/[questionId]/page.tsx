@@ -5,10 +5,10 @@ import { QuestionClient } from "./_components/QuestionClient";
 import { prisma } from "@/lib/prisma";
 
 type Props = {
-    params: {
+    params: Promise<{
         lessonId: string;
         questionId: string;
-    };
+    }>;
 };
 
 export default async function QuestionPage({ params }: Props) {
@@ -17,10 +17,10 @@ export default async function QuestionPage({ params }: Props) {
         redirect("/login");
     }
 
-    const { lessonId } = await params;
+    const { lessonId, questionId } = await params;
 
     const [question, lesson] = await Promise.all([
-        findQuestionById(params.questionId),
+        findQuestionById(questionId),
         prisma.lesson.findUnique({ where: { id: lessonId } }),
     ]);
 

@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
 type Props = {
-    params: {
-        lessonId: string;
-    };
+    params: Promise<{ lessonId: string }>;
 };
 
 export default async function LessonStartPage({ params }: Props) {
