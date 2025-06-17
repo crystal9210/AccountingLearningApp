@@ -1,11 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 
-declare global {
-    var prisma: PrismaClient | undefined;
-}
+// 型定義: グローバルオブジェクトにprismaを追加
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClient | undefined;
+};
 
-export const prisma = global.prisma || new PrismaClient();
+// Prisma Clientのインスタンスを生成または再利用
+export const prisma =
+    globalForPrisma.prisma ??
+    new PrismaClient({
+        log: ["error"], // 必要なら "query" なども追加可
+        errorFormat: "minimal",
+    });
 
-if (process.env.NODE_ENV !== "production") {
-    global.prisma = prisma;
-}
+// 開発環境ではグローバルに保存して再利用（ホットリロード対策）
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
