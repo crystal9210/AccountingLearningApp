@@ -1,7 +1,7 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import type { User } from "@prisma/client";
+import { createServerClient } from "@supabase/ssr";
 
 /**
  * サーバーサイドで現在のログインユーザー情報を取得します。
@@ -9,11 +9,24 @@ import type { User } from "@prisma/client";
  * @returns ログインしているユーザーのプロフィール情報、またはnull
  */
 export const getCurrentUser = async (): Promise<User | null> => {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     // サーバーコンポーネント専用のSupabaseクライアントを作成
-    const supabase = createServerComponentClient({
-        cookies: () => cookieStore,
-    });
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        cookieStore.set(name, value, options)
+                    );
+                },
+            },
+        }
+    );
 
     // 現在のセッションから認証ユーザー情報を取得
     const {

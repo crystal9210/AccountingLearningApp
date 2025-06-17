@@ -1,7 +1,7 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createServerClient } from "@supabase/ssr";
 
 export async function POST(request: Request) {
     const { email, password, name } = await request.json();
@@ -13,9 +13,24 @@ export async function POST(request: Request) {
         );
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     // Route Handler専用のSupabaseクライアントを作成
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        cookieStore.set(name, value, options)
+                    );
+                },
+            },
+        }
+    );
 
     // 1. Supabase Authでユーザーを作成
     const {
