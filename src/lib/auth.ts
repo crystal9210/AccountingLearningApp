@@ -10,7 +10,6 @@ import { createServerClient } from "@supabase/ssr";
  */
 export const getCurrentUser = async (): Promise<User | null> => {
     const cookieStore = await cookies();
-    // サーバーコンポーネント専用のSupabaseクライアントを作成
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,32 +27,29 @@ export const getCurrentUser = async (): Promise<User | null> => {
         }
     );
 
-    // 現在のセッションから認証ユーザー情報を取得
+    // ここで「getUser」を使うのが安全
     const {
-        data: { session },
-        error: sessionError,
-    } = await supabase.auth.getSession();
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError) {
-        console.error("Session Error:", sessionError.message);
+    if (userError) {
+        console.error("Supabase getUser Error:", userError.message);
         return null;
     }
 
-    if (!session) {
+    if (!user) {
         return null; // ログインしていない
     }
 
     // 認証ユーザーのIDを使って、Prismaでプロフィール情報を検索
     const userProfile = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: user.id },
     });
 
     if (!userProfile) {
         // Supabase Authには存在するが、ローカルDBにプロフィールがない場合
-        // 本来は発生しづらいが、念のためログを出力
-        console.warn(
-            `User profile not found for auth user ID: ${session.user.id}`
-        );
+        console.warn(`User profile not found for auth user ID: ${user.id}`);
         return null;
     }
 
