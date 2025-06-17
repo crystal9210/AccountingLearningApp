@@ -44,6 +44,8 @@ export async function POST(request: Request) {
             data: {
                 name: name,
             },
+            emailRedirectTo:
+                "https://accounting-learning-quufz7n8e-yutosekis-projects.vercel.app",
         },
     });
 

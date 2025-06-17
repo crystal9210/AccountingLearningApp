@@ -29,6 +29,9 @@ export async function POST(request: Request) {
             },
         }
     );
+
+    console.log(`debugging...`);
+
     // Supabase Authでユーザーのサインインを試みる
     const {
         data: { user },
@@ -37,6 +40,8 @@ export async function POST(request: Request) {
         email,
         password,
     });
+
+    console.log(`debugging... user: ${user}`);
 
     if (error) {
         // 認証情報が間違っている場合など
