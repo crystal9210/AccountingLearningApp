@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+    // 外部のauthスキーマを参照するために必要
+    schemas  = ["public", "auth"]
+}
+
+// --- Enums for Type Safety ---
+
+enum QuestionType {
+    MULTIPLE_CHOICE // 複数選択
+    SORTING // 並び替え
+    FILL_IN_THE_BLANK // 穴埋め
+
+    @@schema("public")
+}
+
+enum ProgressStatus {
+    NOT_STARTED
+    IN_PROGRESS
+    COMPLETED
+
+    @@schema("public")
+}
+
+enum BadgeConditionType {
+    LESSON_COMPLETION // 特定のレッスン数をクリア
+    PERFECT_LESSONS // パーフェクトクリアしたレッスン数
+    LOGIN_STREAK // 連続ログイン日数
+
+    @@schema("public")
+}
+
+// --- Core Models ---
+
+// SupabaseのAuthユーザーと同期するためのテーブル
+// セキュリティルール(RLS)でユーザーは自身の情報のみを読み書きできるように設定する
+model User {
+    id        String   @id @db.Uuid // Supabase AuthのIDとリンク
+    email     String   @unique
+    name      String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    progresses UserProgress[]
+    badges     UserBadge[]
+    answers    UserAnswer[]
+
+    @@map("users") // テーブル名を "users" にマッピング
+    @@schema("public")
+}
+
+model Lesson {
+    id          String @id @default(cuid())
+    title       String
+    description String
+    level       Int
+    order       Int    @unique // レッスンの順序
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    questions  Question[]
+    progresses UserProgress[]
+
+    @@schema("public")
+}
+
+model Question {
+    id            String       @id @default(cuid())
+    lessonId      String
+    questionText  String
+    type          QuestionType
+    // 複数選択式の選択肢など
+    choices       String[]
+    // 正解（並び替え問題では順序、複数選択ではIDなど）
+    correctAnswer String[]
+    explanation   String
+    // ヒントや補足情報
+    tips          String[]
+    order         Int // レッスン内の問題の順序
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    lesson  Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    answers UserAnswer[]
+
+    @@unique([lessonId, order])
+    @@schema("public")
+}
+
+model Badge {
+    id             String             @id @default(cuid())
+    name           String
+    description    String
+    iconUrl        String // バッジの画像URL
+    // バッジ獲得条件
+    conditionType  BadgeConditionType
+    conditionValue Int // 例: LESSON_COMPLETION の場合、クリアすべきレッスン数
+
+    createdAt DateTime @default(now())
+
+    // Relations
+    users UserBadge[]
+
+    @@schema("public")
+}
+
+// --- Join/Intermediate Tables for Relations ---
+
+// ユーザーのレッスン進捗を管理する中間テーブル
+model UserProgress {
+    userId       String
+    lessonId     String
+    status       ProgressStatus @default(NOT_STARTED)
+    correctCount Int            @default(0)
+    totalCount   Int            @default(0)
+    completedAt  DateTime?
+
+    // Relations
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+    @@id([userId, lessonId]) // 複合主キー
+    @@schema("public")
+}
+
+// ユーザーが獲得したバッジを管理する中間テーブル (Many-to-Many)
+model UserBadge {
+    userId   String
+    badgeId  String
+    earnedAt DateTime @default(now())
+
+    // Relations
+    user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+    @@id([userId, badgeId]) // 複合主キー
+    @@schema("public")
+}
+
+// ユーザーの回答履歴とメモを保存するテーブル
+model UserAnswer {
+    id         String   @id @default(cuid())
+    userId     String
+    questionId String
+    userAnswer String[] // ユーザーが入力した回答
+    isCorrect  Boolean
+    // ユーザーが自由に書けるメモ欄 (AIチューターとの対話履歴などもここに保存可能)
+    notes      String?  @db.Text
+    answeredAt DateTime @default(now())
+
+    // Relations
+    user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+    @@schema("public")
+}
