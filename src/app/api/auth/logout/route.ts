@@ -2,7 +2,10 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function POST(_request: Request) {
+// NOTE: supabase.auth.signOut(): 現在のリクエストに紐づくセッション（= Cookieのユーザー）をログアウトさせるため、「どのユーザーをログアウトするか」は、APIの呼び出し元のCookie（セッション情報）によって自動的に判別される。
+// API内でユーザーIDなどを明示的に指定する必要はない。
+export async function POST() {
+    // ← 引数を削除
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
